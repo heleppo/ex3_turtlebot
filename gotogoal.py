@@ -83,6 +83,19 @@ class TurtleBot:
             # Publish at the desired rate.
             self.rate.sleep()
 
+        while abs(self.pose.theta - goal_pose.theta) >= distance_tolerance:
+
+            # Angular velocity in the z-axis.
+            vel_msg.angular.x = 0
+            vel_msg.angular.y = 0
+            vel_msg.angular.z = 6 * (goal_pose.theta - self.pose.theta)
+
+            # Publishing our vel_msg
+            self.velocity_publisher.publish(vel_msg)
+
+            # Publish at the desired rate.
+            self.rate.sleep()
+
         # Stopping our robot after the movement is over.
         vel_msg.linear.x = 0
         vel_msg.angular.z = 0
