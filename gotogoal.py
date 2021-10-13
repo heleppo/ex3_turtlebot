@@ -3,7 +3,7 @@ import rospy
 from geometry_msgs.msg import Twist
 from turtlesim.msg import Pose
 from math import pow, atan2, sqrt
-
+import rosbag
 
 class TurtleBot:
 
@@ -48,9 +48,55 @@ class TurtleBot:
         """See video: https://www.youtube.com/watch?v=Qh15Nol5htM."""
         return constant * (self.steering_angle(goal_pose) - self.pose.theta)
 
+    def followpath(self):
+
+        goal_pose = Pose()
+        vel_msg = Twist()
+
+        bag = rosbag.Bag('pose.bag')
+        for topic, msg, t in bag.read_messages(topics=['/turtle1/pose']):
+            print(msg)
+            goal_pose.x = msg.x
+            goal_pose.y = msg.y
+
+
+            while self.euclidean_distance(goal_pose) >= 0.1:
+
+                # Linear velocity in the x-axis.
+                vel_msg.linear.x = self.linear_vel(goal_pose)
+                vel_msg.linear.y = 0
+                vel_msg.linear.z = 0
+
+                # Angular velocity in the z-axis.
+                vel_msg.angular.x = 0
+                vel_msg.angular.y = 0
+                vel_msg.angular.z = self.angular_vel(goal_pose)
+
+                # Publishing our vel_msg
+                self.velocity_publisher.publish(vel_msg)
+
+                # Publish at the desired rate.
+                self.rate.sleep()
+
+            # Stopping our robot after the movement is over.
+            vel_msg.linear.x = 0
+            vel_msg.angular.z = 0
+            self.velocity_publisher.publish(vel_msg)
+
+            # If we press control + C, the node will stop.
+            #rospy.spin()
+
+        bag.close()
+
+
     def move2goal(self):
         """Moves the turtle to the goal."""
         goal_pose = Pose()
+
+        # Follow path?
+        mode = input("Follow predefined path? (y/n)")
+        if mode == "y":
+            self.followpath()
 
         # Get the input from the user.
         goal_pose.x = float(input("Set your x goal: "))
