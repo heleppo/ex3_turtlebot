@@ -2,7 +2,7 @@
 import rospy
 from geometry_msgs.msg import Twist
 from turtlesim.msg import Pose
-from math import pow, atan2, sqrt
+from math import pow, atan2, sqrt, pi
 
 
 class TurtleBot:
@@ -47,6 +47,35 @@ class TurtleBot:
     def angular_vel(self, goal_pose, constant=6):
         """See video: https://www.youtube.com/watch?v=Qh15Nol5htM."""
         return constant * (self.steering_angle(goal_pose) - self.pose.theta)
+
+    def doCircle(self, radius=1):
+        # duration 1 sec
+        vel_msg = Twist()
+        round = 0
+        while round < 10:
+            # Linear velocity in the x-axis.
+            vel_msg.linear.x = 2*pi*radius
+            vel_msg.linear.y = 0
+            vel_msg.linear.z = 0
+
+            # Angular velocity in the z-axis.
+            vel_msg.angular.x = 0
+            vel_msg.angular.y = 0
+            vel_msg.angular.z = 2*pi
+
+            # Publishing our vel_msg
+            self.velocity_publisher.publish(vel_msg)
+            round += 1
+            # Publish at the desired rate.
+            self.rate.sleep()
+
+        # Stopping our robot after the movement is over.
+        vel_msg.linear.x = 0
+        vel_msg.angular.z = 0
+        self.velocity_publisher.publish(vel_msg)
+
+        # If we press control + C, the node will stop.
+        rospy.spin()
 
     def move2goal(self):
         """Moves the turtle to the goal."""
@@ -95,7 +124,6 @@ class TurtleBot:
 
             # Publish at the desired rate.
             self.rate.sleep()
-
         # Stopping our robot after the movement is over.
         vel_msg.linear.x = 0
         vel_msg.angular.z = 0
