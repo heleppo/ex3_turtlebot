@@ -81,6 +81,11 @@ class TurtleBot:
         """Moves the turtle to the goal."""
         goal_pose = Pose()
 
+        # Follow path?
+        mode = input("Follow predefined path? (y/n)")
+        if mode == "y":
+            self.followpath()
+
         # Get the input from the user.
         goal_pose.x = float(input("Set your x goal: "))
         goal_pose.y = float(input("Set your y goal: "))
