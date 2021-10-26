@@ -3,7 +3,7 @@ import rospy
 from geometry_msgs.msg import Twist
 from turtlesim.msg import Pose
 from math import pow, atan2, sqrt, pi
-
+import rosbag
 
 class TurtleBot:
 
@@ -51,6 +51,15 @@ class TurtleBot:
     def angular_vel(self, goal_pose, constant=6):
         """See video: https://www.youtube.com/watch?v=Qh15Nol5htM."""
         return constant * (self.steering_angle(goal_pose) - self.pose.theta)
+
+    def turnShortestWay(self, goal_pose, vel_msg, constant=6):
+        qerr = goal_pose.theta-self.pose.theta
+        qvel_z = vel_msg.angular.z/1.5
+        if(qerr > pi):
+            qvel_z = constant*(qerr-2*pi)
+        elif(qerr < -pi):
+            qvel_z = constant*(2*pi+qerr)
+        return qvel_z
 
     def doCircle(self, radius=1):
         # duration 1 sec
@@ -105,7 +114,7 @@ class TurtleBot:
                 vel_msg.angular.x = 0
                 vel_msg.angular.y = 0
                 vel_msg.angular.z = 1.5*self.angular_vel(goal_pose)
-
+                vel_msg.angular.z = 1.5*self.turnShortestWay(goal_pose,vel_msg)
                 # Publishing our vel_msg
                 self.velocity_publisher.publish(vel_msg)
 
