@@ -16,6 +16,10 @@ class TurtleBot:
         self.velocity_publisher = rospy.Publisher('/turtle1/cmd_vel',
                                                   Twist, queue_size=10)
 
+        # Publisher which will publish to the topic '/turtle1/cmd_vel'.
+        self.error_publisher = rospy.Publisher('/turtle1/error',
+                                                  Pose, queue_size=10)
+
         # A subscriber to the topic '/turtle1/pose'. self.update_pose is called
         # when a message of type Pose is received.
         self.pose_subscriber = rospy.Subscriber('/turtle1/pose',
@@ -76,6 +80,55 @@ class TurtleBot:
 
         # If we press control + C, the node will stop.
         rospy.spin()
+
+    def followpath(self):
+
+        goal_pose = Pose()
+        vel_msg = Twist()
+        error_msg = Pose()
+
+        bag = rosbag.Bag('pose.bag')
+        for topic, msg, t in bag.read_messages(topics=['/turtle1/pose']):
+            goal_pose.x = msg.x
+            goal_pose.y = msg.y
+            goal_pose.theta = msg.theta
+
+
+            while self.euclidean_distance(goal_pose) >= 0.1:
+
+                # Linear velocity in the x-axis.
+                vel_msg.linear.x = 6*self.linear_vel(goal_pose)
+                vel_msg.linear.y = 0
+                vel_msg.linear.z = 0
+
+                # Angular velocity in the z-axis.
+                vel_msg.angular.x = 0
+                vel_msg.angular.y = 0
+                vel_msg.angular.z = 1.5*self.angular_vel(goal_pose)
+
+                # Publishing our vel_msg
+                self.velocity_publisher.publish(vel_msg)
+
+                # Publish at the desired rate.
+                self.rate.sleep()
+
+            # Stopping our robot after the movement is over.
+            vel_msg.linear.x = 0
+            vel_msg.angular.z = 0
+            self.velocity_publisher.publish(vel_msg)
+
+            d_distance = self.euclidean_distance(goal_pose)
+            d_theta = goal_pose.theta - self.pose.theta
+            print("Error in distance: ", d_distance, ", error in angle: ", d_theta)
+            #print(goal_pose.theta, self.pose.theta)
+
+            # Publishing error
+            error_msg.x = goal_pose.x - self.pose.x
+            error_msg.y = goal_pose.y - self.pose.y
+            error_msg.theta = goal_pose.theta - self.pose.theta
+            self.error_publisher.publish(error_msg)
+
+        bag.close()
 
     def move2goal(self):
         """Moves the turtle to the goal."""
