@@ -4,6 +4,7 @@ from geometry_msgs.msg import Twist
 from turtlesim.msg import Pose
 from math import pow, atan2, sqrt, pi
 import rosbag
+import std_msgs.msg
 
 class TurtleBot:
 
@@ -87,6 +88,9 @@ class TurtleBot:
         vel_msg.angular.z = 0
         self.velocity_publisher.publish(vel_msg)
 
+        # Display info message
+        rospy.loginfo("Circle complete")
+
         # If we press control + C, the node will stop.
         rospy.spin()
 
@@ -104,6 +108,9 @@ class TurtleBot:
             goal_pose.x = msg.x
             goal_pose.y = msg.y
             goal_pose.theta = msg.theta
+
+            # Display info message
+            rospy.loginfo("Received target: " + str(goal_pose.x) + ", " + str(goal_pose.y))
 
             # Main loop, move turtle to point
             while self.euclidean_distance(goal_pose) >= 0.1:
@@ -140,6 +147,10 @@ class TurtleBot:
             error_msg.theta = goal_pose.theta - self.pose.theta
             self.error_publisher.publish(error_msg)
 
+            # Display info message
+            rospy.loginfo("Reached goal: " + str(self.pose.x) + ", " + str(self.pose.y))
+
+
         bag.close()
 
     def move2goal(self):
@@ -160,6 +171,9 @@ class TurtleBot:
         distance_tolerance = float(input("Set your tolerance: "))
 
         vel_msg = Twist()
+
+        # Display info message
+        rospy.loginfo("Received target: " + str(goal_pose.x) + ", " + str(goal_pose.y))
 
         while self.euclidean_distance(goal_pose) >= distance_tolerance:
 
@@ -198,6 +212,9 @@ class TurtleBot:
         vel_msg.linear.x = 0
         vel_msg.angular.z = 0
         self.velocity_publisher.publish(vel_msg)
+
+        # Display info message
+        rospy.loginfo("Reached goal: " + str(self.pose.x) + ", " + str(self.pose.y))
 
         # If we press control + C, the node will stop.
         rospy.spin()
