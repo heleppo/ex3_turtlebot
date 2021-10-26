@@ -16,7 +16,7 @@ class TurtleBot:
         self.velocity_publisher = rospy.Publisher('/turtle1/cmd_vel',
                                                   Twist, queue_size=10)
 
-        # Publisher which will publish to the topic '/turtle1/cmd_vel'.
+        # Publisher which will publish to the topic '/turtle1/error'.
         self.error_publisher = rospy.Publisher('/turtle1/error',
                                                   Pose, queue_size=10)
 
@@ -81,19 +81,22 @@ class TurtleBot:
         # If we press control + C, the node will stop.
         rospy.spin()
 
+    # Function to follow a predefined path (from rosbag)
     def followpath(self):
 
+        # Initialize message types
         goal_pose = Pose()
         vel_msg = Twist()
         error_msg = Pose()
 
+        # Read rosbag and go through all the points one by one
         bag = rosbag.Bag('pose.bag')
         for topic, msg, t in bag.read_messages(topics=['/turtle1/pose']):
             goal_pose.x = msg.x
             goal_pose.y = msg.y
             goal_pose.theta = msg.theta
 
-
+            # Main loop, move turtle to point
             while self.euclidean_distance(goal_pose) >= 0.1:
 
                 # Linear velocity in the x-axis.
