@@ -54,7 +54,7 @@ class TurtleBot:
 
     def turnShortestWay(self, goal_pose, vel_msg, constant=6):
         qerr = goal_pose.theta-self.pose.theta
-        qvel_z = vel_msg.angular.z/1.5
+        qvel_z = vel_msg.angular.z
         if(qerr > pi):
             qvel_z = constant*(qerr-2*pi)
         elif(qerr < -pi):
@@ -65,7 +65,7 @@ class TurtleBot:
         # duration 1 sec
         vel_msg = Twist()
         round = 0
-        while round < 10:
+        while round < 11:
             # Linear velocity in the x-axis.
             vel_msg.linear.x = 2*pi*radius
             vel_msg.linear.y = 0
@@ -88,7 +88,7 @@ class TurtleBot:
         self.velocity_publisher.publish(vel_msg)
 
         # If we press control + C, the node will stop.
-        rospy.spin()
+        #rospy.spin()
 
     def followpath(self):
 
@@ -113,7 +113,7 @@ class TurtleBot:
                 # Angular velocity in the z-axis.
                 vel_msg.angular.x = 0
                 vel_msg.angular.y = 0
-                vel_msg.angular.z = 1.5*self.angular_vel(goal_pose)
+                vel_msg.angular.z = self.angular_vel(goal_pose)
                 vel_msg.angular.z = 1.5*self.turnShortestWay(goal_pose,vel_msg)
                 # Publishing our vel_msg
                 self.velocity_publisher.publish(vel_msg)
@@ -144,9 +144,7 @@ class TurtleBot:
         goal_pose = Pose()
 
         # Follow path?
-        mode = input("Follow predefined path? (y/n)")
-        if mode == "y":
-            self.followpath()
+
 
         # Get the input from the user.
         goal_pose.x = float(input("Set your x goal: "))
@@ -185,6 +183,7 @@ class TurtleBot:
             vel_msg.angular.x = 0
             vel_msg.angular.y = 0
             vel_msg.angular.z = 6 * (goal_pose.theta - self.pose.theta)
+            vel_msg.angular.z = self.turnShortestWay(goal_pose,vel_msg)
 
             # Publishing our vel_msg
             self.velocity_publisher.publish(vel_msg)
@@ -197,11 +196,20 @@ class TurtleBot:
         self.velocity_publisher.publish(vel_msg)
 
         # If we press control + C, the node will stop.
-        rospy.spin()
+        #rospy.spin()
 
 if __name__ == '__main__':
     try:
         x = TurtleBot()
-        x.move2goal()
+        mode = ""
+        while mode != "e":
+            print(" 'p' for predefined path\n 'g' for moving to the certain goal\n 'c' for doing a circle\n 'e' for exit")
+            mode = input("command: ")
+            if(mode == "p"):
+                x.followpath()
+            elif(mode == "g"):
+                x.move2goal()
+            elif(mode == "c"):
+                x.doCircle()
     except rospy.ROSInterruptException:
         pass
