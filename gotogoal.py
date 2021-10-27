@@ -114,17 +114,28 @@ class TurtleBot:
         error_msg = Pose()
 
         # Read rosbag and go through all the points one by one
-        bag = rosbag.Bag('pose.bag')
-        for topic, msg, t in bag.read_messages(topics=['/turtle1/pose']):
-            goal_pose.x = msg.x
-            goal_pose.y = msg.y
-            goal_pose.theta = msg.theta
+        bag = rosbag.Bag('posegaze.bag')
+        counter = 0
+
+        for topic, msg, t in bag.read_messages(topics=['/odom']):
+
+            if counter < 50:
+                counter += 1
+                continue
+            else:
+                counter = 0
+
+            goal_pose.x = msg.pose.pose.position.x
+            goal_pose.y = msg.pose.pose.position.y
+            (r, p, y) = tf.transformations.euler_from_quaternion([msg.pose.pose.orientation.x,
+             msg.pose.pose.orientation.y, msg.pose.pose.orientation.z, msg.pose.pose.orientation.w])
+            goal_pose.theta = y
 
             # Display info message
             rospy.loginfo("Received target: " + str(goal_pose.x) + ", " + str(goal_pose.y))
 
             # Main loop, move turtle to point
-            while self.euclidean_distance(goal_pose) >= 0.1:
+            while self.euclidean_distance(goal_pose) >= 0.15:
 
                 # Linear velocity in the x-axis.
                 vel_msg.linear.x = self.linear_vel(goal_pose)
@@ -140,16 +151,14 @@ class TurtleBot:
                 self.velocity_publisher.publish(vel_msg)
 
                 # Publish at the desired rate.
-                self.rate.sleep()
+                rospy.Rate(200).sleep()
 
-            # Stopping our robot after the movement is over.
-            vel_msg.linear.x = 0
-            vel_msg.angular.z = 0
+
             self.velocity_publisher.publish(vel_msg)
 
             d_distance = self.euclidean_distance(goal_pose)
             d_theta = goal_pose.theta - self.pose.theta
-            print("Error in distance: ", d_distance, ", error in angle: ", d_theta)
+            #print("Error in distance: ", d_distance, ", error in angle: ", d_theta)
             #print(goal_pose.theta, self.pose.theta)
 
             # Publishing error
@@ -161,6 +170,9 @@ class TurtleBot:
             # Display info message
             rospy.loginfo("Reached goal: " + str(self.pose.x) + ", " + str(self.pose.y))
 
+        # Stopping our robot after the movement is over.
+        vel_msg.linear.x = 0
+        vel_msg.angular.z = 0
 
         bag.close()
 
