@@ -5,6 +5,8 @@ from turtlesim.msg import Pose
 from math import pow, atan2, sqrt, pi
 import rosbag
 import std_msgs.msg
+from nav_msgs.msg import Odometry
+import tf
 
 class TurtleBot:
 
@@ -13,18 +15,17 @@ class TurtleBot:
         # unique node (using anonymous=True).
         rospy.init_node('turtlebot_controller', anonymous=True)
 
-        # Publisher which will publish to the topic '/turtle1/cmd_vel'.
-        self.velocity_publisher = rospy.Publisher('/turtle1/cmd_vel',
+        # Publisher which will publish to the topic '/cmd_vel'.
+        self.velocity_publisher = rospy.Publisher('/cmd_vel',
                                                   Twist, queue_size=10)
 
         # Publisher which will publish to the topic '/turtle1/error'.
-        self.error_publisher = rospy.Publisher('/turtle1/error',
+        self.error_publisher = rospy.Publisher('/error',
                                                   Pose, queue_size=10)
 
         # A subscriber to the topic '/turtle1/pose'. self.update_pose is called
         # when a message of type Pose is received.
-        self.pose_subscriber = rospy.Subscriber('/turtle1/pose',
-                                                Pose, self.update_pose)
+        self.pose_subscriber = rospy.Subscriber('/odom', Odometry, self.update_pose)
 
         self.pose = Pose()
         self.rate = rospy.Rate(10)
@@ -32,18 +33,23 @@ class TurtleBot:
     def update_pose(self, data):
         """Callback function which is called when a new message of type Pose is
         received by the subscriber."""
-        self.pose = data
-        self.pose.x = round(self.pose.x, 4)
-        self.pose.y = round(self.pose.y, 4)
+        self.pose.x = round(data.pose.pose.position.x, 4)
+        self.pose.y = round(data.pose.pose.position.y, 4)
+        (r, p, y) = tf.transformations.euler_from_quaternion([data.pose.pose.orientation.x,
+         data.pose.pose.orientation.y, data.pose.pose.orientation.z, data.pose.pose.orientation.w])
+        self.pose.theta = y
 
     def euclidean_distance(self, goal_pose):
         """Euclidean distance between current pose and the goal."""
         return sqrt(pow((goal_pose.x - self.pose.x), 2) +
                     pow((goal_pose.y - self.pose.y), 2))
 
-    def linear_vel(self, goal_pose, constant=1.5):
+    def linear_vel(self, goal_pose, constant=1):
         """See video: https://www.youtube.com/watch?v=Qh15Nol5htM."""
-        return constant * self.euclidean_distance(goal_pose)
+        vel = constant * self.euclidean_distance(goal_pose)
+        if vel > 1:
+            vel = 1
+        return vel
 
     def steering_angle(self, goal_pose):
         """See video: https://www.youtube.com/watch?v=Qh15Nol5htM."""
@@ -82,6 +88,7 @@ class TurtleBot:
             round += 1
             # Publish at the desired rate.
             self.rate.sleep()
+            print(self.pose.theta)
 
         # Stopping our robot after the movement is over.
         vel_msg.linear.x = 0
@@ -116,7 +123,7 @@ class TurtleBot:
             while self.euclidean_distance(goal_pose) >= 0.1:
 
                 # Linear velocity in the x-axis.
-                vel_msg.linear.x = 6*self.linear_vel(goal_pose)
+                vel_msg.linear.x = self.linear_vel(goal_pose)
                 vel_msg.linear.y = 0
                 vel_msg.linear.z = 0
 
@@ -124,7 +131,7 @@ class TurtleBot:
                 vel_msg.angular.x = 0
                 vel_msg.angular.y = 0
                 vel_msg.angular.z = self.angular_vel(goal_pose)
-                vel_msg.angular.z = 1.5*self.turnShortestWay(goal_pose,vel_msg)
+                vel_msg.angular.z = self.turnShortestWay(goal_pose,vel_msg,1)
                 # Publishing our vel_msg
                 self.velocity_publisher.publish(vel_msg)
 
@@ -157,9 +164,6 @@ class TurtleBot:
         """Moves the turtle to the goal."""
         goal_pose = Pose()
 
-        # Follow path?
-
-
         # Get the input from the user.
         goal_pose.x = float(input("Set your x goal: "))
         goal_pose.y = float(input("Set your y goal: "))
@@ -182,11 +186,13 @@ class TurtleBot:
             vel_msg.linear.x = self.linear_vel(goal_pose)
             vel_msg.linear.y = 0
             vel_msg.linear.z = 0
+            print("linear "+str(vel_msg.linear.x))
 
             # Angular velocity in the z-axis.
             vel_msg.angular.x = 0
             vel_msg.angular.y = 0
             vel_msg.angular.z = self.angular_vel(goal_pose)
+            print("angular "+str(vel_msg.angular.z))
 
             # Publishing our vel_msg
             self.velocity_publisher.publish(vel_msg)
@@ -199,8 +205,8 @@ class TurtleBot:
             # Angular velocity in the z-axis.
             vel_msg.angular.x = 0
             vel_msg.angular.y = 0
-            vel_msg.angular.z = 6 * (goal_pose.theta - self.pose.theta)
-            vel_msg.angular.z = self.turnShortestWay(goal_pose,vel_msg)
+            vel_msg.angular.z = (goal_pose.theta - self.pose.theta)
+            vel_msg.angular.z = self.turnShortestWay(goal_pose,vel_msg,1)
 
             # Publishing our vel_msg
             self.velocity_publisher.publish(vel_msg)
