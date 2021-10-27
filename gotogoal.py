@@ -68,26 +68,30 @@ class TurtleBot:
             qvel_z = constant*(2*pi+qerr)
         return qvel_z
 
-    def doCircle(self, radius=1):
+    def doCircle(self, radius=1, linear_vel=1):
         # duration 1 sec
         vel_msg = Twist()
-        round = 0
-        while round < 11:
+        goal_pose = Pose()
+        goal_pose = self.pose
+        atStart = True
+        startAngle = self.pose.theta
+        while abs(startAngle-self.pose.theta) > 0.05 or atStart:
             # Linear velocity in the x-axis.
-            vel_msg.linear.x = 2*pi*radius
+            vel_msg.linear.x = linear_vel
             vel_msg.linear.y = 0
             vel_msg.linear.z = 0
 
             # Angular velocity in the z-axis.
             vel_msg.angular.x = 0
             vel_msg.angular.y = 0
-            vel_msg.angular.z = 2*pi
+            vel_msg.angular.z = linear_vel/radius
 
             # Publishing our vel_msg
             self.velocity_publisher.publish(vel_msg)
-            round += 1
             # Publish at the desired rate.
             self.rate.sleep()
+            if(atStart and abs(startAngle-self.pose.theta) > 0.05):
+                atStart = False
             print(self.pose.theta)
 
         # Stopping our robot after the movement is over.
@@ -236,6 +240,6 @@ if __name__ == '__main__':
             elif(mode == "g"):
                 x.move2goal()
             elif(mode == "c"):
-                x.doCircle()
+                x.doCircle(1,0.5)
     except rospy.ROSInterruptException:
         pass
