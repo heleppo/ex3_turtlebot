@@ -215,7 +215,7 @@ class TurtleBot:
 
             # Publish at the desired rate.
             self.rate.sleep()
-
+        vel_msg.linear.x = 0 
         while abs(self.pose.theta - goal_pose.theta) >= distance_tolerance:
 
             # Angular velocity in the z-axis.
