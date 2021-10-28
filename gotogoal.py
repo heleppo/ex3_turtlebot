@@ -55,7 +55,7 @@ class TurtleBot:
         """See video: https://www.youtube.com/watch?v=Qh15Nol5htM."""
         return atan2(goal_pose.y - self.pose.y, goal_pose.x - self.pose.x)
 
-    def angular_vel(self, goal_pose, constant=6):
+    def angular_vel(self, goal_pose, constant=3):
         """See video: https://www.youtube.com/watch?v=Qh15Nol5htM."""
         return constant * (self.steering_angle(goal_pose) - self.pose.theta)
 
@@ -119,7 +119,7 @@ class TurtleBot:
 
         for topic, msg, t in bag.read_messages(topics=['/odom']):
 
-            if counter < 50:
+            if counter < 10:
                 counter += 1
                 continue
             else:
@@ -151,7 +151,7 @@ class TurtleBot:
                 self.velocity_publisher.publish(vel_msg)
 
                 # Publish at the desired rate.
-                rospy.Rate(200).sleep()
+                rospy.Rate(10).sleep()
 
 
             self.velocity_publisher.publish(vel_msg)
@@ -173,6 +173,7 @@ class TurtleBot:
         # Stopping our robot after the movement is over.
         vel_msg.linear.x = 0
         vel_msg.angular.z = 0
+        self.velocity_publisher.publish(vel_msg)
 
         bag.close()
 
@@ -215,7 +216,10 @@ class TurtleBot:
 
             # Publish at the desired rate.
             self.rate.sleep()
-        vel_msg.linear.x = 0 
+
+        # Stopping our robot after the movement is over.
+        vel_msg.linear.x = 0
+
         while abs(self.pose.theta - goal_pose.theta) >= distance_tolerance:
 
             # Angular velocity in the z-axis.
@@ -229,6 +233,7 @@ class TurtleBot:
 
             # Publish at the desired rate.
             self.rate.sleep()
+
         # Stopping our robot after the movement is over.
         vel_msg.linear.x = 0
         vel_msg.angular.z = 0
@@ -252,6 +257,6 @@ if __name__ == '__main__':
             elif(mode == "g"):
                 x.move2goal()
             elif(mode == "c"):
-                x.doCircle(1,0.5)
+                x.doCircle(0.35,0.5)
     except rospy.ROSInterruptException:
         pass
